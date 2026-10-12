@@ -205,6 +205,22 @@ cython_debug/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
+# FAVI: large/private/generated artifacts
+data/raw/
+data/processed/
+outputs/
+*.safetensors
+*.pt
+*.pth
+*.ckpt
+*.zip
+.env.*
+!.env.example
+kaggle.json
+experiments/**/checkpoint/
+experiments/**/artifact/
+experiments/**/predictions.jsonl
+
 # Ruff stuff:
 .ruff_cache/
 

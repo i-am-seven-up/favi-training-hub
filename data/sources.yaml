@@ -1,0 +1,83 @@
+schema_version: 1
+evidence: materials/FAVI_DATASET_HANDOFF_final.md
+sources:
+  deepghs_nsfw:
+    name: deepghs/nsfw_detect
+    url: https://huggingface.co/datasets/deepghs/nsfw_detect
+    reported_status: PASS
+    reported_count: 28000
+    original_labels: [drawings, hentai, neutral, porn, sexy]
+    status: pending_verification
+    revision: ac763cb1e1557225168be3b6b6b1ee864c17bc36
+    local_path: data/raw/deepghs_nsfw_subset
+    local_scope: deterministic_inspection_subset_50
+    license: MIT
+    license_evidence: https://huggingface.co/datasets/deepghs/nsfw_detect
+    review_evidence: materials/FAVI_DATASET_HANDOFF_final.md#51-deepghsnsfw_detect
+    video_origin: null
+    limitations: "Only a 50-image inspection subset is local; neutral/drawings need independent non-violence review; sexy boundary needs annotation policy"
+  harmful_contents:
+    name: onullusoy/harmful-contents
+    url: https://huggingface.co/datasets/onullusoy/harmful-contents
+    reported_status: REJECT_PRIMARY_VIOLENCE
+    reported_count: 5153
+    status: rejected
+    revision: null
+    local_path: null
+    license: null
+    license_evidence: null
+    review_evidence: null
+    video_origin: null
+    limitations: "Weapon shortcut; curated supplementary subset needs separate review"
+  stylized_gore:
+    name: NeuralShell/Gore-Blood-Dataset-v1.0
+    url: https://huggingface.co/datasets/NeuralShell/Gore-Blood-Dataset-v1.0
+    reported_status: PASS_WITH_LIMITATION
+    reported_approx_count: 398
+    status: pending_verification
+    revision: null
+    local_path: null
+    license: null
+    license_evidence: null
+    review_evidence: null
+    video_origin: null
+    limitations: "Stylized/synthetic-looking; use snapshot archives, audit duplicates across ZIPs"
+  vimd:
+    name: VIMD
+    url: null
+    reported_status: CANDIDATE
+    status: candidate
+    revision: null
+    local_path: null
+    license: null
+    license_evidence: null
+    review_evidence: null
+    video_origin: null
+    limitations: "Resolve exact original source; review about 50 fighting images"
+  weapon_detection:
+    name: Subh775/WeaponDetection
+    url: https://huggingface.co/datasets/Subh775/WeaponDetection
+    reported_status: CANDIDATE
+    status: candidate
+    revision: null
+    local_path: null
+    license: null
+    license_evidence: null
+    review_evidence: null
+    video_origin: null
+    limitations: "Aggressor/Stabbing/Victim/violence/Blood are candidate filters, not final labels"
+  real_injury:
+    name: Real-world injury/blood
+    status: missing
+  crowd_violence:
+    name: Crowd/riot violence
+    status: missing
+  non_violence:
+    name: Non-Violence
+    status: missing
+  sexual_hard_negatives:
+    name: Sexual hard negatives
+    status: missing
+  violence_hard_negatives:
+    name: Violence hard negatives
+    status: missing

@@ -1,0 +1,16 @@
+schema_version: 1
+labels: {Safe: 0, Sexual: 1, Violence: 2}
+primary_metric: macro_f1
+seed: null  # Choose before dataset freeze; no research seed is implied.
+split_ratios: null
+dataset:
+  version: null
+  frozen_manifest: null
+  fingerprint: null
+model:
+  family: clip
+  id: null
+  revision: null  # Immutable HF commit, not main.
+input_resolution: null
+preprocessing: pretrained_processor_no_augmentation
+head: linear

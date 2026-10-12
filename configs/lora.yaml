@@ -1,0 +1,33 @@
+protocol: configs/protocol.yaml
+method: lora
+training:
+  epochs: 3
+  batch_size: 2
+  accumulation_steps: 4
+  learning_rate: 0.0001
+  weight_decay: 0.01
+  warmup_ratio: 0.03
+  precision: fp32
+  eval_every: 100
+  checkpoint_every: 100
+lora:
+  r: 8
+  alpha: 16
+  dropout: 0.0
+  target_modules: []  # Select after inspecting the chosen CLIP checkpoint.
+pilot: {basis: optimizer_steps, fraction: 0.1}
+remote:
+  kaggle_owner: null
+  kaggle_accelerator: null
+  kaggle_dataset_sources: []
+  dataset_hf_repo: null
+  dataset_hf_revision: null
+  modal_gpu: null
+  calibration_steps: 10
+  max_hours: null
+  max_cost_usd: null
+  estimated_hourly_usd: null
+  rate_checked_at: null
+  artifact_hf_repo: null
+# RTX 4060 8 GB starting proposal. Effective batch remains 8; adjust only via a new experiment.
+# Kaggle fields are optional fallback settings, not the default pilot path.
