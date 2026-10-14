@@ -8,7 +8,7 @@ from favi_hub.__main__ import dispatch
 from favi_hub.io import read, write
 from favi_hub.remote import bundle, submit, unpack
 from favi_hub.report import build_report
-from favi_hub.runs import collect_result, new_run, prepare
+from favi_hub.runs import cancel, collect_result, new_run, prepare
 
 
 def test_dry_run_has_no_network_or_run_side_effect(research, monkeypatch):
@@ -54,6 +54,16 @@ def test_failed_collection_is_idempotent_and_not_a_result(research):
     assert "not measured" in (root / "results/comparison.md").read_text(encoding="utf-8")
 
 
+def test_cancel_records_intentional_stop_without_erasing_attempt(research):
+    root, *_ = research
+    experiment = prepare(root, root / "config.yaml")
+    folder, run = new_run(root, experiment["experiment_id"], "pilot", "local")
+    result = cancel(root, run["run_id"], "Paused for phase-by-phase explanation")
+    assert result["status"] == "cancelled"
+    assert result["cancellation_reason"] == "Paused for phase-by-phase explanation"
+    assert read(folder / "run.json")["status"] == "cancelled"
+
+
 def test_collection_identity_mismatch_rejected(research):
     root, *_ = research
     experiment = prepare(root, root / "config.yaml")
@@ -76,7 +86,7 @@ def test_local_command_creates_local_pilot(research, monkeypatch):
     monkeypatch.setattr("favi_hub.train.execute", fake_execute)
     args = SimpleNamespace(root=root, command="run", action="local",
                            experiment=experiment["experiment_id"], resume_run=None,
-                           data_root=str(root / "images"))
+                           data_root=str(root / "images"), full=False, approved_pilot=None)
     result = dispatch(args)
     assert result["backend"] == "local"
     assert result["resume"] is False

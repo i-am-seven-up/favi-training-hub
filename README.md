@@ -17,8 +17,9 @@ nằm ở `SCAFFOLD_PLAN.md`. `WORKLOG.md` là điểm vào cho session mới.
 
 ## Trạng thái hiện tại
 
-Scaffold local đã có; nghiên cứu thật vẫn ở M1 dataset composition. Chưa có canonical dataset/split,
-model revision, canonical dataset hay Modal budget được khóa. Fixture và smoke result không phải bằng
+Scaffold local đã có. Ưu tiên thực thi hiện tại là P0: binary NSFW trên deepghs để có result sớm qua
+local pilot rồi Modal full; track này tách khỏi canonical 3-class thesis dataset. Nghiên cứu 3-class vẫn ở
+M1 dataset composition. Chưa có canonical 3-class dataset/split, model revision hay Modal budget được khóa. Fixture và smoke result không phải bằng
 chứng luận văn. Không submit cloud cho đến khi `doctor` và các gate research đạt.
 
 ## Setup

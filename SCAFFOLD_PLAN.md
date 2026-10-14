@@ -4,6 +4,10 @@ Ngày: 2026-10-11. Trạng thái: **scaffold v1 đã triển khai; remote live c
 
 Nguồn nghiệp vụ: `materials/FAVI_DATASET_HANDOFF_final.md`.
 Flow đã thống nhất: local smoke → local GPU pilot 5–10% → review → Modal full training → thu kết quả. Kaggle là fallback khi GPU local không đủ VRAM hoặc môi trường local bị chặn.
+
+## Priority P0 — binary NSFW result first
+
+Trước canonical 3-class thesis dataset, ưu tiên một track **binary NSFW** có scope tách biệt: `hentai/porn/sexy → NSFW`; `neutral/drawings → Non-NSFW` từ `deepghs/nsfw_detect`. Mục tiêu là có kết quả model sớm và xác minh end-to-end local → reviewed pilot → Modal full. Track P0 **không thay thế** bài toán luận văn Safe/Sexual/Violence và không được gọi `Safe`; metric/config/dataset fingerprint/report của nó phải tách riêng.
 Tài liệu này là thiết kế của scaffold hiện tại; không đồng nghĩa cho phép khởi chạy GPU hoặc upload dataset ngay.
 
 ## 1. Kết quả cần đạt

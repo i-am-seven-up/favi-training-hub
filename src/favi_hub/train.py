@@ -6,10 +6,15 @@ import random
 import time
 from pathlib import Path
 
+# CUDA 10.2+ needs this workspace contract before torch initializes when the
+# protocol requests deterministic algorithms.  It makes the frozen experiment
+# reproducible instead of failing at the first backward pass.
+os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+
 import torch
 from PIL import Image, ImageOps
 
-from .config import LABELS, steps
+from .config import steps
 from .evaluate import classification_metrics, split_fingerprint
 from .io import digest, file_hash, inside, read, write
 from .models import load_model
@@ -26,28 +31,28 @@ def batch_plan(count, cfg):
             yield micro[i:i + t["accumulation_steps"]]
 
 
-def pixels_for(records, processor, data_root, device):
+def pixels_for(records, processor, data_root, device, labels):
     images = []
     for row in records:
         with Image.open(inside(data_root, row["image_uri"])) as im:
             images.append(ImageOps.exif_transpose(im).convert("RGB"))
     pixels = processor(images=images, return_tensors="pt")["pixel_values"].to(device)
-    labels = torch.tensor([LABELS[r["canonical_label"]] for r in records], device=device)
-    return pixels, labels
+    targets = torch.tensor([labels[r["canonical_label"]] for r in records], device=device)
+    return pixels, targets
 
 
-def evaluate_model(model, processor, records, data_root, batch_size, device):
+def evaluate_model(model, processor, records, data_root, batch_size, device, labels):
     model.eval()
     targets, predictions = [], []
     loss_sum = 0.0
     with torch.no_grad():
         for i in range(0, len(records), batch_size):
-            pixels, labels = pixels_for(records[i:i + batch_size], processor, data_root, device)
+            pixels, targets_batch = pixels_for(records[i:i + batch_size], processor, data_root, device, labels)
             logits = model(pixels)
-            loss_sum += torch.nn.functional.cross_entropy(logits, labels, reduction="sum").item()
-            targets.extend(labels.cpu().tolist())
+            loss_sum += torch.nn.functional.cross_entropy(logits, targets_batch, reduction="sum").item()
+            targets.extend(targets_batch.cpu().tolist())
             predictions.extend(logits.argmax(-1).cpu().tolist())
-    return {**classification_metrics(targets, predictions), "loss": loss_sum / len(records)}
+    return {**classification_metrics(targets, predictions, labels), "loss": loss_sum / len(records)}
 
 
 def save_checkpoint(path, model, optimizer, scheduler, completed_steps, identity):
@@ -95,7 +100,7 @@ def execute(root, run_id, data_root, persist=None, resume=False):
     data = dataset_ready(root, cfg)
     from .runs import modal_gate
 
-    if run["stage"] == "full":
+    if run["stage"] == "full" and run["backend"] == "modal":
         modal_gate(root, run["experiment_id"])
     started = time.perf_counter()
     try:
@@ -156,13 +161,13 @@ def _execute(root, folder, run, cfg, data, data_root, started, persist, resume):
     history_path = folder / "history.csv"
     if not resume:
         history_path.write_text("step,learning_rate,train_loss,validation_loss,macro_f1\n", encoding="utf-8")
-    if run["stage"] == "full" and not resume:
+    if run["stage"] == "full" and run["backend"] == "modal" and not resume:
         save_checkpoint(initial, model, optimizer, scheduler, 0, identity)
         timings = []
         for chunks in list(batch_plan(len(train_rows), cfg))[:cfg["remote"]["calibration_steps"]]:
             _sync(device)
             begin = time.perf_counter()
-            _train_step(model, processor, train_rows, chunks, data_root, device, optimizer)
+            _train_step(model, processor, train_rows, chunks, data_root, device, optimizer, cfg["protocol"]["labels"])
             _sync(device)
             timings.append(time.perf_counter() - begin)
         if len(timings) < 2:
@@ -186,13 +191,14 @@ def _execute(root, folder, run, cfg, data, data_root, started, persist, resume):
             continue
         if step_index >= max_steps:
             break
-        if run["stage"] == "full":
+        if run["stage"] == "full" and run["backend"] == "modal":
             elapsed_hours = (time.perf_counter() - started) / 3600
             r = cfg["remote"]
             if elapsed_hours >= min(r["max_hours"], r["max_cost_usd"] / r["estimated_hourly_usd"]):
                 raise TimeoutError("Runtime budget exhausted")
         lr = optimizer.param_groups[0]["lr"]
-        loss_last, flow = _train_step(model, processor, train_rows, chunks, data_root, device, optimizer)
+        loss_last, flow = _train_step(model, processor, train_rows, chunks, data_root, device, optimizer,
+                                      cfg["protocol"]["labels"])
         for key, active in flow.items():
             gradients[key] = gradients[key] or active
         scheduler.step()
@@ -202,7 +208,8 @@ def _execute(root, folder, run, cfg, data, data_root, started, persist, resume):
         observed.update(train_rows[i]["sample_id"] for chunk in chunks for i in chunk)
         measured = {}
         if completed % t["eval_every"] == 0 or completed == max_steps:
-            measured = evaluate_model(model, processor, val_rows, data_root, t["batch_size"], device)
+            measured = evaluate_model(model, processor, val_rows, data_root, t["batch_size"], device,
+                                      cfg["protocol"]["labels"])
         with history_path.open("a", newline="", encoding="utf-8") as stream:
             csv.writer(stream).writerow([completed, lr, loss_last, measured.get("loss"), measured.get("macro_f1")])
         if completed % t["checkpoint_every"] == 0 or completed == max_steps:
@@ -211,7 +218,8 @@ def _execute(root, folder, run, cfg, data, data_root, started, persist, resume):
                 persist()
     _sync(device)
     seconds = time.perf_counter() - train_started
-    metrics = evaluate_model(model, processor, val_rows, data_root, t["batch_size"], device)
+    metrics = evaluate_model(model, processor, val_rows, data_root, t["batch_size"], device,
+                             cfg["protocol"]["labels"])
     params = model.check_trainable()
     metrics.update({**params, "trainable_fraction": params["trainable_params"] / params["total_params"],
                     "split": "validation", "split_fingerprint": split_fingerprint(data["records"], "validation"),
@@ -233,7 +241,7 @@ def _execute(root, folder, run, cfg, data, data_root, started, persist, resume):
     torch.save(model.head.state_dict(), artifact / "head.pt")
     processor.save_pretrained(artifact)
     write(artifact / "config.yaml", cfg)
-    write(artifact / "identity.json", {**identity, "labels": LABELS, "config_hash": digest(cfg)})
+    write(artifact / "identity.json", {**identity, "labels": cfg["protocol"]["labels"], "config_hash": digest(cfg)})
     update(folder, status="completed", completed_steps=completed,
            artifact_uri=f"{run['backend']}://{run['run_id']}/artifact")
     if persist:
@@ -241,14 +249,14 @@ def _execute(root, folder, run, cfg, data, data_root, started, persist, resume):
     return metrics
 
 
-def _train_step(model, processor, rows, chunks, data_root, device, optimizer):
+def _train_step(model, processor, rows, chunks, data_root, device, optimizer, labels):
     model.train()
     optimizer.zero_grad(set_to_none=True)
     total = sum(map(len, chunks))
     loss_value = 0.0
     for chunk in chunks:
-        pixels, labels = pixels_for([rows[i] for i in chunk], processor, data_root, device)
-        loss = torch.nn.functional.cross_entropy(model(pixels), labels) * (len(chunk) / total)
+        pixels, targets = pixels_for([rows[i] for i in chunk], processor, data_root, device, labels)
+        loss = torch.nn.functional.cross_entropy(model(pixels), targets) * (len(chunk) / total)
         if not torch.isfinite(loss):
             raise ValueError("Nonfinite training loss")
         loss.backward()

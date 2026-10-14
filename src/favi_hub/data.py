@@ -21,7 +21,7 @@ def records_from(path):
     return value["records"] if isinstance(value, dict) else value
 
 
-def audit(records, sources, evidence_root=None):
+def audit(records, sources, evidence_root=None, labels=LABELS):
     errors, warnings = [], []
     ids, uris = set(), set()
     groups = defaultdict(set)
@@ -45,13 +45,13 @@ def audit(records, sources, evidence_root=None):
         if not re.fullmatch(r"[0-9a-f]{64}", row.get("sha256", "")):
             errors.append(f"{sid}: invalid sha256")
         label, split = row.get("canonical_label"), row.get("split")
-        if label not in LABELS or split not in SPLITS:
+        if label not in labels or split not in SPLITS:
             errors.append(f"{sid}: invalid canonical_label or split")
         else:
             class_counts[split][label] += 1
         if row.get("review_status") != "approved":
             errors.append(f"{sid}: canonical review not approved")
-        if label == "Safe" and (row.get("non_sexual") is not True or row.get("non_violent") is not True):
+        if labels == LABELS and label == "Safe" and (row.get("non_sexual") is not True or row.get("non_violent") is not True):
             errors.append(f"{sid}: Safe requires both non_sexual and non_violent review")
         source = sources.get(row.get("source_id"), {})
         if source.get("status") not in {"pass", "pass_with_limitation"}:
@@ -85,7 +85,7 @@ def audit(records, sources, evidence_root=None):
             if any(not r.get("near_duplicate_reviewed") for r in rows):
                 errors.append("Unresolved perceptual-hash duplicate candidates")
     for split in SPLITS:
-        missing = set(LABELS) - set(class_counts[split])
+        missing = set(labels) - set(class_counts[split])
         if missing:
             errors.append(f"{split}: missing classes {sorted(missing)}")
     if evidence_root is not None:
@@ -108,20 +108,20 @@ def audit(records, sources, evidence_root=None):
             "near_duplicate_candidates": near_pairs, "count": len(records)}
 
 
-def freeze(manifest, registry, destination, root, version, seed):
+def freeze(manifest, registry, destination, root, version, seed, labels=LABELS):
     destination = Path(destination)
     if destination.exists():
         raise ValueError("Frozen manifest already exists; choose a new version/path")
     records = sorted(records_from(manifest), key=lambda r: r["sample_id"])
     sources = read(registry)["sources"]
     used = {r["source_id"]: copy.deepcopy(sources[r["source_id"]]) for r in records}
-    report = audit(records, used, root)
+    report = audit(records, used, root, labels)
     if not report["ok"]:
         raise ValueError("Dataset not ready: " + "; ".join(report["errors"]))
     for source in used.values():
         evidence = inside(root, source["review_evidence"])
         source["review_evidence_sha256"] = file_hash(evidence)
-    payload = {"schema_version": 1, "version": version, "seed": seed,
+    payload = {"schema_version": 1, "version": version, "seed": seed, "labels": labels,
                "records": records, "sources": used, "mock": False}
     value = {**payload, "fingerprint": digest(payload), "frozen_at": now(), "audit": report}
     write(destination, value)
@@ -130,10 +130,10 @@ def freeze(manifest, registry, destination, root, version, seed):
 
 def verify_frozen(path):
     data = read(path)
-    payload = {k: data[k] for k in ("schema_version", "version", "seed", "records", "sources", "mock")}
+    payload = {k: data[k] for k in ("schema_version", "version", "seed", "labels", "records", "sources", "mock")}
     if digest(payload) != data["fingerprint"]:
         raise ValueError("Frozen manifest fingerprint mismatch")
-    result = audit(data["records"], data["sources"])
+    result = audit(data["records"], data["sources"], labels=data["labels"])
     if not result["ok"] or data["mock"]:
         raise ValueError("Frozen research dataset is invalid or synthetic")
     return data

@@ -1,0 +1,18 @@
+schema_version: 1
+track: p0_binary_nsfw
+labels: {Non-NSFW: 0, NSFW: 1}
+primary_metric: macro_f1
+seed: 42
+split_ratios: {train: 0.8, validation: 0.1, test: 0.1}
+dataset:
+  version: nsfw-p0-v1
+  frozen_manifest: data/manifests/nsfw-p0-v1.frozen.json
+  fingerprint: 36c7b9b4dc6c45488c2c10ff59209e8555f540bec83d13a3f6cd3ba40b8844f4
+model:
+  family: clip
+  id: openai/clip-vit-base-patch32
+  revision: 3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268
+input_resolution: 224
+preprocessing: pretrained_processor_no_augmentation
+head: linear
+# P0 is a separate binary NSFW track. Non-NSFW is never reported as thesis Safe.

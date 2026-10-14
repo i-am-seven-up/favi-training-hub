@@ -1,0 +1,8 @@
+{
+  "experiment_id": "EXP-003",
+  "created_at": "2026-10-12T16:25:12.599689+00:00",
+  "config_hash": "82bd7d3ddd7af94a6ac34b27b259b46c63e99685c4914c3a28ef4a1d09e511e4",
+  "code_hash": "6a196fd0cf63b4c4894e777e48abbbfbac058a2cf5914e3dd96c0c64c5ffcd1a",
+  "comparison_key": "e145191b7789bd54ab399cccd1357e3736888a73ff661b61cb806f9ab8ad8c65",
+  "method": "frozen"
+}

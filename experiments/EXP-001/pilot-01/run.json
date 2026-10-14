@@ -1,0 +1,19 @@
+{
+  "experiment_id": "EXP-001",
+  "created_at": "2026-10-12T16:04:24.438709+00:00",
+  "config_hash": "82bd7d3ddd7af94a6ac34b27b259b46c63e99685c4914c3a28ef4a1d09e511e4",
+  "code_hash": "2c16b4d8432703da7b8530339a861b45794a4e656a20c8f5f1f3f1dbc27149b2",
+  "comparison_key": "e145191b7789bd54ab399cccd1357e3736888a73ff661b61cb806f9ab8ad8c65",
+  "method": "frozen",
+  "run_id": "EXP-001/pilot-01",
+  "stage": "pilot",
+  "backend": "local",
+  "status": "failed",
+  "updated_at": "2026-10-12T16:08:36.502659+00:00",
+  "mock": false,
+  "remote_id": null,
+  "dataset_fingerprint": "36c7b9b4dc6c45488c2c10ff59209e8555f540bec83d13a3f6cd3ba40b8844f4",
+  "protocol_hash": "29ef5e314192e642c6d3c0afae8ba2eceb1804238c4183f83d20a4610425d5bb",
+  "artifact_uri": null,
+  "error_type": "RuntimeError"
+}

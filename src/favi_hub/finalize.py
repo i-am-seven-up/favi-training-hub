@@ -73,7 +73,8 @@ def evaluate_artifact(root, run_id, data_root, artifact, split):
             raise ValueError("Evaluation image checksum mismatch")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
-    metrics = evaluate_model(model, processor, rows, data_root, cfg["training"]["batch_size"], device)
+    metrics = evaluate_model(model, processor, rows, data_root, cfg["training"]["batch_size"], device,
+                             cfg["protocol"]["labels"])
     metrics.update(split=split, split_fingerprint=split_fingerprint(data["records"], split), mock=False,
                    config_hash=run["config_hash"], run_id=run_id)
     write(destination, metrics)

@@ -21,3 +21,11 @@ def test_missing_class_is_reported():
 def test_invalid_labels_rejected(target, prediction):
     with pytest.raises(ValueError):
         classification_metrics(target, prediction)
+
+
+def test_binary_nsfw_metrics_use_two_class_coverage():
+    labels = {"Non-NSFW": 0, "NSFW": 1}
+    result = classification_metrics([0, 0, 1, 1], [0, 1, 1, 1], labels)
+    assert result["labels"] == labels
+    assert len(result["confusion_matrix"]) == 2
+    assert result["coverage_complete"]

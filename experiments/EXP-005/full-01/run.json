@@ -1,0 +1,20 @@
+{
+  "experiment_id": "EXP-005",
+  "created_at": "2026-10-12T17:19:48.362429+00:00",
+  "config_hash": "82bd7d3ddd7af94a6ac34b27b259b46c63e99685c4914c3a28ef4a1d09e511e4",
+  "code_hash": "538a0ea50e5e74490ccf57f7a0298039001ff80d0a04e777e4509121bb85c6c4",
+  "comparison_key": "e145191b7789bd54ab399cccd1357e3736888a73ff661b61cb806f9ab8ad8c65",
+  "method": "frozen",
+  "run_id": "EXP-005/full-01",
+  "stage": "full",
+  "backend": "local",
+  "status": "completed",
+  "updated_at": "2026-10-12T17:29:20.252175+00:00",
+  "mock": false,
+  "remote_id": null,
+  "dataset_fingerprint": "36c7b9b4dc6c45488c2c10ff59209e8555f540bec83d13a3f6cd3ba40b8844f4",
+  "protocol_hash": "29ef5e314192e642c6d3c0afae8ba2eceb1804238c4183f83d20a4610425d5bb",
+  "artifact_uri": "local://EXP-005/full-01/artifact",
+  "approved_pilot_run": "EXP-003/pilot-01",
+  "completed_steps": 1200
+}

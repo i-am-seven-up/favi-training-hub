@@ -5,7 +5,7 @@ from torch import nn
 
 
 class Classifier(nn.Module):
-    def __init__(self, encoder, method, seed, lora=None):
+    def __init__(self, encoder, method, seed, lora=None, num_classes=3):
         super().__init__()
         self.method = method
         hidden = encoder.config.hidden_size
@@ -20,7 +20,7 @@ class Classifier(nn.Module):
         # Head initialization is independent of adapter initialization RNG consumption.
         with torch.random.fork_rng(devices=[]):
             torch.manual_seed(seed)
-            self.head = nn.Linear(hidden, 3)
+            self.head = nn.Linear(hidden, num_classes)
         self.check_trainable()
 
     def train(self, mode=True):
@@ -54,4 +54,4 @@ def load_model(cfg):
         raise ValueError("Configured input resolution does not match pretrained encoder")
     if processor.crop_size != {"height": p["input_resolution"], "width": p["input_resolution"]}:
         raise ValueError("Processor crop does not match configured resolution")
-    return Classifier(encoder, cfg["method"], p["seed"], cfg.get("lora")), processor
+    return Classifier(encoder, cfg["method"], p["seed"], cfg.get("lora"), len(p["labels"])), processor

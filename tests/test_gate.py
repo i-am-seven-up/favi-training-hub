@@ -3,7 +3,7 @@ import pytest
 from favi_hub.config import steps
 from favi_hub.evaluate import classification_metrics, split_fingerprint
 from favi_hub.io import read, write
-from favi_hub.runs import calibration_decision, modal_gate, new_run, prepare, review, update
+from favi_hub.runs import calibration_decision, local_full_gate, modal_gate, new_run, prepare, review, update
 
 
 def completed_pilot(research):
@@ -88,3 +88,12 @@ def test_kaggle_remains_an_accepted_pilot_fallback(research):
     experiment = prepare(root, root / "config.yaml")
     _, run = new_run(root, experiment["experiment_id"], "pilot", "kaggle")
     assert run["backend"] == "kaggle"
+
+
+def test_completed_comparable_pilot_can_gate_local_full(research):
+    root, _, _, pilot = completed_pilot(research)
+    target = prepare(root, root / "config.yaml")
+    assert local_full_gate(root, target["experiment_id"], pilot["run_id"])["ok"]
+    _, full = new_run(root, target["experiment_id"], "full", "local")
+    assert full["stage"] == "full"
+    assert full["backend"] == "local"

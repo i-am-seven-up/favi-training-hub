@@ -7,15 +7,15 @@ sources:
     reported_status: PASS
     reported_count: 28000
     original_labels: [drawings, hentai, neutral, porn, sexy]
-    status: pending_verification
+    status: pass_with_limitation
     revision: ac763cb1e1557225168be3b6b6b1ee864c17bc36
-    local_path: data/raw/deepghs_nsfw_subset
-    local_scope: deterministic_inspection_subset_50
+    local_path: data/raw/deepghs_nsfw_full/nsfw_dataset_v1
+    local_scope: full_archive_for_p0_binary_nsfw
     license: MIT
     license_evidence: https://huggingface.co/datasets/deepghs/nsfw_detect
-    review_evidence: materials/FAVI_DATASET_HANDOFF_final.md#51-deepghsnsfw_detect
-    video_origin: null
-    limitations: "Only a 50-image inspection subset is local; neutral/drawings need independent non-violence review; sexy boundary needs annotation policy"
+    review_evidence: data/reviews/deepghs_nsfw_p0.json
+    video_origin: false
+    limitations: "Approved only for P0 binary NSFW: Non-NSFW is not thesis Safe; source-level video provenance remains a limitation; sexy boundary needs annotation policy."
   harmful_contents:
     name: onullusoy/harmful-contents
     url: https://huggingface.co/datasets/onullusoy/harmful-contents
@@ -44,16 +44,17 @@ sources:
     limitations: "Stylized/synthetic-looking; use snapshot archives, audit duplicates across ZIPs"
   vimd:
     name: VIMD
-    url: null
+    url: https://github.com/ChinaZhangPeng/Violence-Image-Dataset
     reported_status: CANDIDATE
     status: candidate
-    revision: null
-    local_path: null
+    revision: 79fef289d093658ba2caeaead4a5243d7755353a
+    local_path: data/raw/vimd_inspection_subset_valid
+    local_scope: deterministic_inspection_subset_50
     license: null
     license_evidence: null
     review_evidence: null
     video_origin: null
-    limitations: "Resolve exact original source; review about 50 fighting images"
+    limitations: "No repository license declared; raw clone has 2,421 XML but only 1,972 image/XML pairs (260 fighting, 183 normal, 1 unknown references missing). Inspection sample shows hockey/CCTV domain bias and likely video-frame groups; do not freeze without permission, provenance and group treatment."
   weapon_detection:
     name: Subh775/WeaponDetection
     url: https://huggingface.co/datasets/Subh775/WeaponDetection

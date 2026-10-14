@@ -5,6 +5,7 @@ from pathlib import Path
 from .io import digest, read
 
 LABELS = {"Safe": 0, "Sexual": 1, "Violence": 2}
+NSFW_LABELS = {"Non-NSFW": 0, "NSFW": 1}
 
 
 def resolve(path, root):
@@ -17,8 +18,16 @@ def resolve(path, root):
 
 def validate(cfg):
     p = cfg["protocol"]
-    if p.get("labels") != LABELS or p.get("primary_metric") != "macro_f1":
-        raise ValueError("Protocol must use canonical labels and macro_f1")
+    labels = p.get("labels")
+    track = p.get("track", "thesis_3class")
+    if labels not in (LABELS, NSFW_LABELS) or p.get("primary_metric") != "macro_f1":
+        raise ValueError("Protocol must use a supported ordered label map and macro_f1")
+    if track == "thesis_3class" and labels != LABELS:
+        raise ValueError("thesis_3class must use Safe/Sexual/Violence")
+    if track == "p0_binary_nsfw" and labels != NSFW_LABELS:
+        raise ValueError("p0_binary_nsfw must use Non-NSFW/NSFW")
+    if track not in {"thesis_3class", "p0_binary_nsfw"}:
+        raise ValueError("Unsupported protocol track")
     if cfg.get("method") not in {"frozen", "lora"}:
         raise ValueError("method must be frozen or lora")
     pilot = cfg["pilot"]

@@ -1,0 +1,62 @@
+{
+  "metric_version": 1,
+  "labels": {
+    "Non-NSFW": 0,
+    "NSFW": 1
+  },
+  "sample_count": 400,
+  "macro_f1": 0.8696055568093484,
+  "accuracy": 0.87,
+  "per_class": {
+    "Non-NSFW": {
+      "precision": 0.9157303370786517,
+      "recall": 0.815,
+      "f1": 0.8624338624338624,
+      "support": 200
+    },
+    "NSFW": {
+      "precision": 0.8333333333333334,
+      "recall": 0.925,
+      "f1": 0.8767772511848342,
+      "support": 200
+    }
+  },
+  "confusion_matrix": [
+    [
+      163,
+      37
+    ],
+    [
+      15,
+      185
+    ]
+  ],
+  "coverage_complete": true,
+  "zero_division": 0,
+  "loss": 0.38212855892255904,
+  "trainable_params": 1538,
+  "total_params": 87457538,
+  "trainable_names": [
+    "head.weight",
+    "head.bias"
+  ],
+  "trainable_fraction": 1.7585676834397053e-05,
+  "split": "validation",
+  "split_fingerprint": "e2bbf4dda4f447625ed3fee438e0ef2afd3226ecfd2d374b6374aa3ffea7e7ae",
+  "mock": false,
+  "train_seconds": 59.119551299999785,
+  "setup_seconds": 15.33870479999996,
+  "timing_scope": "current invocation; includes periodic evaluation/checkpoint",
+  "completed_steps": 120,
+  "planned_full_steps": 1200,
+  "unique_train_images_this_invocation": 960,
+  "loss_first": 0.45847712457180023,
+  "loss_last": 0.3397388104349375,
+  "finite_gradients": true,
+  "gradient_flow_verified": true,
+  "peak_vram_gb": 0.39728212356567383,
+  "peak_reserved_vram_gb": 0.439453125,
+  "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "torch_version": "2.8.0+cu128",
+  "resumed": false
+}

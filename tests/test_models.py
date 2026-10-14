@@ -50,6 +50,11 @@ def test_head_initialization_matches_between_methods():
     assert torch.equal(frozen.head.weight, lora.head.weight)
 
 
+def test_binary_head_has_two_outputs():
+    model = Classifier(tiny("frozen").encoder, "frozen", 42, num_classes=2)
+    assert model.head.out_features == 2
+
+
 def test_resume_restores_trainable_optimizer_scheduler_and_rng(tmp_path):
     model = tiny("lora")
     optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=0.01)

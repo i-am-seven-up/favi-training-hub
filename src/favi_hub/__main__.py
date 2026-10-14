@@ -32,6 +32,7 @@ def parser():
         s = data.add_parser(action)
         s.add_argument("--manifest", required=True)
         s.add_argument("--registry", default="data/sources.yaml")
+        s.add_argument("--protocol", default="configs/protocol.yaml")
         if action == "freeze":
             s.add_argument("--out", required=True)
             s.add_argument("--version", required=True)
@@ -40,21 +41,25 @@ def parser():
     for action in ("prepare", "smoke"):
         s = run.add_parser(action)
         s.add_argument("--config", default="configs/frozen.yaml")
-    s = run.add_parser("local", help="Run or resume the bounded pilot on this machine's CUDA GPU")
+    s = run.add_parser("local", help="Run or resume a local CUDA pilot or approved full run")
     target = s.add_mutually_exclusive_group(required=True)
     target.add_argument("--experiment")
     target.add_argument("--resume-run")
     s.add_argument("--data-root", required=True)
+    s.add_argument("--full", action="store_true", help="Run the full local plan after a completed pilot")
+    s.add_argument("--approved-pilot", help="Completed comparable local/Kaggle pilot required with --full")
     s = run.add_parser("submit")
     s.add_argument("--backend", required=True, choices=["kaggle", "modal"])
     s.add_argument("--experiment", required=True)
     s.add_argument("--dry-run", action="store_true")
-    for action in ("status", "collect", "publish", "review"):
+    for action in ("status", "collect", "publish", "review", "cancel"):
         s = run.add_parser(action)
         s.add_argument("--run", required=True)
         if action == "review":
             s.add_argument("--decision", choices=["revise", "inconclusive", "ready_for_modal", "stop"], required=True)
             s.add_argument("--reviewer", required=True)
+            s.add_argument("--reason", required=True)
+        if action == "cancel":
             s.add_argument("--reason", required=True)
     s = top.add_parser("finalize")
     s.add_argument("--runs", nargs="+", required=True)
@@ -98,8 +103,10 @@ def dispatch(args):
             return {"count": result["count"], "label_counts": result["label_counts"],
                     "unreadable": len(result["errors"]), "output": str(out / "inventory.json")}
         if args.action == "audit":
-            return audit(records_from(root / args.manifest), read(root / args.registry)["sources"], root)
-        return freeze(root / args.manifest, root / args.registry, root / args.out, root, args.version, args.seed)
+            labels = read(root / args.protocol)["labels"]
+            return audit(records_from(root / args.manifest), read(root / args.registry)["sources"], root, labels)
+        labels = read(root / args.protocol)["labels"]
+        return freeze(root / args.manifest, root / args.registry, root / args.out, root, args.version, args.seed, labels)
     if args.command == "run":
         if args.action == "prepare":
             return prepare(root, root / args.config)
@@ -110,14 +117,28 @@ def dispatch(args):
             if args.resume_run:
                 run_id = args.resume_run
                 existing = read(run_folder(root, run_id) / "run.json")
-                if existing["stage"] != "pilot" or existing["backend"] != "local":
-                    raise ValueError("Only a local pilot run can be resumed with run local")
+                if existing["stage"] not in {"pilot", "full"} or existing["backend"] != "local":
+                    raise ValueError("Only a local pilot or local full run can be resumed with run local")
             else:
-                _, created = new_run(root, args.experiment, "pilot", "local")
+                full = getattr(args, "full", False)
+                approved_pilot = getattr(args, "approved_pilot", None)
+                if full:
+                    if not approved_pilot:
+                        raise ValueError("Local full requires --approved-pilot EXP-001/pilot-01")
+                    from .runs import local_full_gate, update
+                    local_full_gate(root, args.experiment, approved_pilot)
+                elif approved_pilot:
+                    raise ValueError("--approved-pilot is only valid with --full")
+                _, created = new_run(root, args.experiment, "full" if full else "pilot", "local")
+                if full:
+                    update(run_folder(root, created["run_id"]), approved_pilot_run=approved_pilot)
                 run_id = created["run_id"]
             return execute(root, run_id, Path(args.data_root).resolve(), resume=bool(args.resume_run))
         if args.action == "review":
             return review(root, args.run, args.decision, args.reviewer, args.reason)
+        if args.action == "cancel":
+            from .runs import cancel
+            return cancel(root, args.run, args.reason)
         from . import remote
         if args.action == "submit":
             return remote.submit(root, args.experiment, args.backend, args.dry_run)

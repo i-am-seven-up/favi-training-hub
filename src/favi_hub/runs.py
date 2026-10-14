@@ -49,13 +49,15 @@ def dataset_ready(root, cfg):
         raise ValueError("Dataset fingerprint/version differs from protocol")
     if data["seed"] != cfg["protocol"]["seed"]:
         raise ValueError("Dataset and protocol seeds differ")
+    if data["labels"] != cfg["protocol"]["labels"]:
+        raise ValueError("Dataset and protocol labels differ")
     return data
 
 
 def new_run(root, experiment_id, stage, backend):
     cfg, meta = experiment_config(root, experiment_id)
-    if (stage, backend) not in {("pilot", "local"), ("pilot", "kaggle"), ("full", "modal")}:
-        raise ValueError("Only local/Kaggle pilot and Modal full are research training runs")
+    if (stage, backend) not in {("pilot", "local"), ("pilot", "kaggle"), ("full", "local"), ("full", "modal")}:
+        raise ValueError("Only local/Kaggle pilot and local/Modal full research runs are allowed")
     exp = Path(root) / "experiments" / experiment_id
     # Prevent duplicate submitted/running/uncertain jobs, not merely duplicate IDs.
     for existing in exp.glob("*/run.json"):
@@ -90,10 +92,26 @@ def update(folder, **values):
     return record
 
 
-def validate_pilot(root, run_id):
+def cancel(root, run_id, reason):
+    """Record an intentional stop without rewriting an attempt's evidence."""
+    if not reason:
+        raise ValueError("Cancellation requires a reason")
     folder = run_folder(root, run_id)
     run = read(folder / "run.json")
-    cfg, _ = experiment_config(root, run["experiment_id"])
+    if run["status"] in {"completed", "failed", "blocked", "cancelled"}:
+        raise ValueError("Only a non-terminal run can be cancelled")
+    return update(folder, status="cancelled", cancellation_reason=reason)
+
+
+def validate_pilot(root, run_id, verify_current_code=True):
+    folder = run_folder(root, run_id)
+    run = read(folder / "run.json")
+    if verify_current_code:
+        cfg, _ = experiment_config(root, run["experiment_id"])
+    else:
+        cfg = read(Path(root) / "experiments" / run["experiment_id"] / "config.yaml")
+        if digest(cfg) != run["config_hash"]:
+            raise ValueError("Pilot config snapshot mismatch")
     data = dataset_ready(root, cfg)
     if (run["mock"] or run["backend"] not in {"local", "kaggle"}
             or run["stage"] != "pilot" or run["status"] != "completed"):
@@ -116,6 +134,21 @@ def validate_pilot(root, run_id):
         if metrics.get(key) is None or not math.isfinite(metrics[key]):
             raise ValueError(f"Pilot missing finite {key}")
     return run, cfg, metrics
+
+
+def local_full_gate(root, experiment_id, pilot_run_id):
+    """Allow a local full run only from a comparable, completed local pilot."""
+    # A new local execution feature may legitimately change runner code after
+    # the pilot. Compare immutable config/data evidence instead of claiming the
+    # pilot ran under the new code hash. Modal continues to require same code.
+    pilot, _, _ = validate_pilot(root, pilot_run_id, verify_current_code=False)
+    target_cfg, target = experiment_config(root, experiment_id)
+    for key in ("comparison_key", "config_hash"):
+        if pilot[key] != target[key]:
+            raise ValueError(f"Approved pilot mismatch: {key}")
+    if pilot["dataset_fingerprint"] != target_cfg["protocol"]["dataset"]["fingerprint"]:
+        raise ValueError("Approved pilot mismatch: dataset_fingerprint")
+    return {"ok": True, "pilot_run_id": pilot_run_id}
 
 
 def review(root, run_id, decision, reviewer, reason):
